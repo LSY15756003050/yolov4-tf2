@@ -151,7 +151,7 @@ if __name__ == "__main__":
     #   训练自己的数据集时提示维度不匹配正常
     #   预测的东西都不一样了自然维度不匹配
     #------------------------------------------------------#
-    weights_path = 'model_data/yolo4_weight.h5'
+    #weights_path = 'model_data/yolo4_weight.h5'
     # 获得classes和anchor
     class_names = get_classes(classes_path)
     anchors = get_anchors(anchors_path)
@@ -161,8 +161,8 @@ if __name__ == "__main__":
     # 输入的shape大小
     # 显存比较小可以使用416x416
     # 现存比较大可以使用608x608
-    input_shape = (416,416)
-    mosaic = True
+    input_shape = (2080,2080)
+    mosaic = False
     Cosine_scheduler = False
     label_smoothing = 0
 
@@ -175,9 +175,9 @@ if __name__ == "__main__":
     model_body = yolo_body(image_input, num_anchors//3, num_classes)
     
     # 载入预训练权重
-    print('Load weights {}.'.format(weights_path))
-    model_body.load_weights(weights_path, by_name=True, skip_mismatch=True)
-    
+   #  print('Load weights {}.'.format(weights_path))
+   # # model_body.load_weights(weights_path, by_name=True, skip_mismatch=True)
+   #  model_body.load_weights(weights_path)
     # y_true为13,13,3,85
     # 26,26,3,85
     # 52,52,3,85
@@ -226,56 +226,57 @@ if __name__ == "__main__":
     print('Freeze the first {} layers of total {} layers.'.format(freeze_layers, len(model_body.layers)))
 
     # 调整非主干模型first
-    if True:
-        Init_epoch = 0
-        Freeze_epoch = 25
-        # batch_size大小，每次喂入多少数据
-        batch_size = 2
-        # 最大学习率
-        learning_rate_base = 1e-3
-        if Cosine_scheduler:
-            # 预热期
-            warmup_epoch = int((Freeze_epoch-Init_epoch)*0.2)
-            # 总共的步长
-            total_steps = int((Freeze_epoch-Init_epoch) * num_train / batch_size)
-            # 预热步长
-            warmup_steps = int(warmup_epoch * num_train / batch_size)
-            # 学习率
-            reduce_lr = WarmUpCosineDecayScheduler(learning_rate_base=learning_rate_base,
-                                                        total_steps=total_steps,
-                                                        warmup_learning_rate=1e-4,
-                                                        warmup_steps=warmup_steps,
-                                                        hold_base_rate_steps=num_train,
-                                                        min_learn_rate=1e-6
-                                                        )
-            model.compile(optimizer=Adam(), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
-        else:
-            reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=2, verbose=1)
-            model.compile(optimizer=Adam(learning_rate_base), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
 
-        print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
-        model.fit(data_generator(lines[:num_train], batch_size, input_shape, anchors, num_classes, mosaic=mosaic),
-                 steps_per_epoch=max(1, num_train//batch_size),
-                validation_data=data_generator(lines[num_train:], batch_size, input_shape, anchors, num_classes, mosaic=False),
-                validation_steps=max(1, num_val//batch_size),
-                epochs=Freeze_epoch,
-                initial_epoch=Init_epoch,
-                max_queue_size=1,
-                callbacks=[logging, checkpoint, reduce_lr, early_stopping],
-                )
-        model.save_weights(log_dir + 'trained_weights_stage_1.h5')
-
+    # if True:
+    #     Init_epoch = 0
+    #     Freeze_epoch = 25
+    #     # batch_size大小，每次喂入多少数据
+    #     batch_size = 2
+    #     # 最大学习率
+    #     learning_rate_base = 1e-3
+    #     if Cosine_scheduler:
+    #         # 预热期
+    #         warmup_epoch = int((Freeze_epoch-Init_epoch)*0.2)
+    #         # 总共的步长
+    #         total_steps = int((Freeze_epoch-Init_epoch) * num_train / batch_size)
+    #         # 预热步长
+    #         warmup_steps = int(warmup_epoch * num_train / batch_size)
+    #         # 学习率
+    #         reduce_lr = WarmUpCosineDecayScheduler(learning_rate_base=learning_rate_base,
+    #                                                     total_steps=total_steps,
+    #                                                     warmup_learning_rate=1e-4,
+    #                                                     warmup_steps=warmup_steps,
+    #                                                     hold_base_rate_steps=num_train,
+    #                                                     min_learn_rate=1e-6
+    #                                                     )
+    #         model.compile(optimizer=Adam(), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
+    #     else:
+    #         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=2, verbose=1)
+    #         model.compile(optimizer=Adam(learning_rate_base), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
+    #
+    #     print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
+    #     model.fit(data_generator(lines[:num_train], batch_size, input_shape, anchors, num_classes, mosaic=mosaic),
+    #              steps_per_epoch=max(1, num_train//batch_size),
+    #             validation_data=data_generator(lines[num_train:], batch_size, input_shape, anchors, num_classes, mosaic=False),
+    #             validation_steps=max(1, num_val//batch_size),
+    #             epochs=Freeze_epoch,
+    #             initial_epoch=Init_epoch,
+    #             max_queue_size=1,
+    #             callbacks=[logging, checkpoint, reduce_lr, early_stopping],
+    #             )
+    #     model.save_weights(log_dir + 'trained_weights_stage_1.h5')
+    #
     for i in range(freeze_layers): model_body.layers[i].trainable = True
 
     # 解冻后训练
     if True:
         Freeze_epoch = 25
-        Epoch = 50
+        Epoch = 100
         # batch_size大小，每次喂入多少数据
         batch_size = 2
 
         # 最大学习率
-        learning_rate_base = 1e-4
+        learning_rate_base = 1e-2
         if Cosine_scheduler:
             # 预热期
             warmup_epoch = int((Epoch-Freeze_epoch)*0.2)

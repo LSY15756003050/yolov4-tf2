@@ -27,7 +27,7 @@ class YOLO(object):
         "eager" : False,
         # 显存比较小可以使用416x416
         # 显存比较大可以使用608x608
-        "model_image_size" : (416, 416)
+        "model_image_size" : (2080, 2080)
     }
 
     @classmethod

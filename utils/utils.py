@@ -208,6 +208,7 @@ def get_random_data(annotation_line, input_shape, max_boxes=50, jitter=.3, hue=.
     '''random preprocessing for real-time data augmentation'''
     line = annotation_line.split()
     image = Image.open(line[0])
+    image = image.convert("RGB")
     iw, ih = image.size
     h, w = input_shape
     box = np.array([np.array(list(map(int,box.split(',')))) for box in line[1:]])

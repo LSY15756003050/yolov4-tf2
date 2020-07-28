@@ -80,7 +80,7 @@ def load_data(path):
 if __name__ == '__main__':
     # 运行该程序会计算'./VOCdevkit/VOC2007/Annotations'的xml
     # 会生成yolo_anchors.txt
-    SIZE = 416
+    SIZE = 2080
     anchors_num = 9
     # 载入数据集，可以使用VOC的xml
     path = r'./VOCdevkit/VOC2007/Annotations'
